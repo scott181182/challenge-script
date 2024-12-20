@@ -1,0 +1,5 @@
+{
+    "yaml.schemas": {
+        "challenge.schema.json": [ "tests/**/*.yml" ]
+    }
+}

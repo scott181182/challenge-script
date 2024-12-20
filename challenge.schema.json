@@ -1,0 +1,97 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/output/schema",
+    "$id": "https://raw.githubusercontent.com/scott181182/challenge-script/refs/heads/main/challenge.schema.json",
+    "title": "Challenge",
+    "description": "A challenge definition, used by the challenge script to execute coding challenges",
+
+    "$defs": {
+        "NestedChallengeGroup": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of this challenge group"
+                },
+                "parts": {
+                    "description": "Nested challenge groups",
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "$ref": "#/$defs/NestedChallengeGroup" },
+                            { "$ref": "#/$defs/ChallengeGroup" }
+                        ]
+                    }
+                }
+            },
+            "required": [ "name", "parts" ]
+        },
+        "ChallengeGroup": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of this challenge group"
+                },
+                "command": {
+                    "description": "The command to run for this group of challenges",
+                    "oneOf": [
+                        { "type": "string" },
+                        {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    ]
+                },
+                "cases": {
+                    "description": "The input/output cases for this challenge group",
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/ChallengeCase" }
+                }
+            },
+            "required": [ "name", "command", "cases" ]
+        },
+        "ChallengeCase": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Name of this challenge case, used to reference it in commands",
+                    "type": "string"
+                },
+                "stdin": {
+                    "description": "Data to pass to the stdin when running this case",
+                    "$ref": "#/$defs/StringReference"
+                },
+                "expected": {
+                    "description": "Expected output for this challenge case",
+                    "type": "object",
+                    "properties": {
+                        "stdout": {
+                            "description": "Data expected on stdout after running this case",
+                            "$ref": "#/$defs/StringReference"
+                        }
+                    }
+                }
+            },
+            "required": [ "name" ]
+        },
+        "StringReference": {
+            "oneOf": [
+                { "type": "string" },
+                {
+                    "type": "object",
+                    "properties": {
+                        "file": {
+                            "description": "Path of the file to load data from (relative to this challenge file)",
+                            "type": "string"
+                        }
+                    },
+                    "required": [ "file" ]
+                }
+            ]
+        }
+    },
+    "oneOf": [
+        { "$ref": "#/$defs/NestedChallengeGroup" },
+        { "$ref": "#/$defs/ChallengeGroup" }
+    ]
+}
