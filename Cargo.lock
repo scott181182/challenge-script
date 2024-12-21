@@ -52,7 +52,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "challenge-script"
+name = "challenge_script"
 version = "0.1.0"
 dependencies = [
  "clap",
