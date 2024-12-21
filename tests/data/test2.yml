@@ -1,0 +1,21 @@
+name: Test 2
+parts:
+  - name: group1
+    command: "grep test_1"
+    cases:
+      - name: test
+        stdin: &test-input |
+          test_1_token
+          test_2_token
+          test_3_token
+          test_4_token
+        expected:
+          stdout: test_1_token
+  - name: group2
+    command: "grep test_2"
+    cases:
+      - name: test
+        stdin: *test-input
+        expected:
+          stdout:
+            file: test2-output.txt
