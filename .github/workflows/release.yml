@@ -1,0 +1,29 @@
+name: Release
+permissions: {}
+on:
+  push:
+    branches:
+      - main
+
+env:
+  # Disable incremental compilation for faster from-scratch builds
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  test:
+    name: cargo test
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-features
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    - run: cargo build --release
+    - uses: actions/upload-artifact@v4
+      with:
+        name: challenge_linux
+        path: target/release/challenge_script
