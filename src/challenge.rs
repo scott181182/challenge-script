@@ -55,13 +55,14 @@ pub enum StringReference {
     Immediate(String),
     File{file: String}
 }
-impl TryInto<String> for StringReference {
-    type Error = StringReferenceError;
-
-    fn try_into(self) -> Result<String, Self::Error> {
+impl StringReference {
+    fn into_string<P: AsRef<Path>>(self, challenge_dir: P) -> Result<String, StringReferenceError> {
         Ok(match self {
             StringReference::Immediate(s) => s,
-            StringReference::File { file } => read_to_string(file)?,
+            StringReference::File { file } => {
+                let filepath = challenge_dir.as_ref().join(file);
+                read_to_string(filepath)?
+            },
         })
     }
 }
@@ -86,7 +87,7 @@ impl ChallengeCase {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::inherit());
 
-        let child = match self.stdin {
+        let mut child = match self.stdin {
             Some(StringReference::Immediate(s)) => {
                 cmd.stdin(Stdio::piped());
                 let child = cmd.spawn().map_err(ChallengeExecutionError::SpawnFailed)?;
@@ -104,6 +105,8 @@ impl ChallengeCase {
             }
         };
 
+        child.wait()?;
+
         let mut child_out = child.stdout.ok_or(ChallengeExecutionError::ClosedStdout)?;
         let mut output = String::new();
         child_out.read_to_string(&mut output).map_err(ChallengeExecutionError::CouldNotReadStdout)?;
@@ -112,7 +115,7 @@ impl ChallengeCase {
 
         if let Some(expected) = self.expected {
             let actual_output = output.trim();
-            let expected_content: String = expected.stdout.try_into()?;
+            let expected_content: String = expected.stdout.into_string(challenge_dir)?;
             if expected_content.trim() != actual_output {
                 return Err(ChallengeExecutionError::UnexpectedOutput {
                     expected: expected_content,
@@ -159,7 +162,7 @@ pub struct ChallengeConfigParent {
 pub struct ChallengeConfigLeaf {
     pub name: String,
     pub command: ChallengeCommand,
-    cases: Vec<ChallengeCase> 
+    cases: Vec<ChallengeCase>
 }
 
 
