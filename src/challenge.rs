@@ -78,11 +78,15 @@ pub struct ChallengeExpectation {
 pub struct ChallengeCase {
     pub name: String,
     stdin: Option<StringReference>,
+    arguments: Option<Vec<String>>,
     expected: Option<ChallengeExpectation>
 }
 impl ChallengeCase {
     pub fn execute<P: AsRef<Path>>(self, challenge_dir: P, command: &ChallengeCommand) -> Result<(), ChallengeExecutionError> {
         let mut cmd = command.get_command()?;
+        if let Some(args) = self.arguments {
+            cmd.args(args);
+        }
         cmd.current_dir(&challenge_dir);
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::inherit());

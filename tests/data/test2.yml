@@ -19,3 +19,17 @@ parts:
         expected:
           stdout:
             file: test2-output.txt
+  - name: args
+    command: grep
+    cases:
+      - name: test2
+        arguments: [ "2" ]
+        stdin: *test-input
+        expected:
+          stdout: test_2_token
+      - name: test4
+        arguments: [ "4" ]
+        stdin: *test-input
+        expected:
+          stdout: test_4_token
+

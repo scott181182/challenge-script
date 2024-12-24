@@ -19,6 +19,12 @@ fn test_success_3() {
 }
 
 #[test]
+fn test_success_arguments() {
+    run_challenge("./tests/data/test2.yml", vec!["args".to_owned(), "test2".to_owned()]).unwrap();
+    run_challenge("./tests/data/test2.yml", vec!["args".to_owned(), "test4".to_owned()]).unwrap();
+}
+
+#[test]
 fn test_error_expected() {
     let res = run_challenge("./tests/data/test3", vec!["group1".to_owned(), "error".to_owned()]);
 
