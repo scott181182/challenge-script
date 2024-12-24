@@ -125,6 +125,8 @@ impl ChallengeCase {
                     expected: expected_content,
                     actual: actual_output.to_owned()
                 });
+            } else {
+                println!("Matched expected output!");
             }
         }
 
