@@ -55,7 +55,7 @@ fn get_challenge_file<P: AsRef<Path>>(input: P) -> Result<(PathBuf, File), Chall
 pub enum ProgramError {
     #[error(transparent)]
     InputFileError(#[from] ChallengeFileError),
-    #[error("Failed to parse YAML file")]
+    #[error("Failed to parse YAML file: {0}")]
     ParseError(#[from] YamlError),
     #[error(transparent)]
     InputCaseError(#[from] ChallengeCaseError),
