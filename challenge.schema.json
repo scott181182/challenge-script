@@ -57,6 +57,13 @@
                     "description": "Name of this challenge case, used to reference it in commands",
                     "type": "string"
                 },
+                "environment": {
+                    "description": "Environment variables to set when running this case",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "stdin": {
                     "description": "Data to pass to the stdin when running this case",
                     "$ref": "#/$defs/StringReference"

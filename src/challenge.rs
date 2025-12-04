@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::{read_to_string, File};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -79,6 +80,7 @@ pub struct ChallengeCase {
     pub name: String,
     stdin: Option<StringReference>,
     arguments: Option<Vec<String>>,
+    environment: Option<HashMap<String, String>>,
     expected: Option<ChallengeExpectation>
 }
 impl ChallengeCase {
@@ -91,7 +93,13 @@ impl ChallengeCase {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::inherit());
 
-        let mut child = match self.stdin {
+        if let Some(env_vars) = &self.environment {
+            for (key, value) in env_vars {
+                cmd.env(key, value);
+            }
+        }
+
+        let mut child = match &self.stdin {
             Some(StringReference::Immediate(s)) => {
                 cmd.stdin(Stdio::piped());
                 let child = cmd.spawn().map_err(ChallengeExecutionError::SpawnFailed)?;
