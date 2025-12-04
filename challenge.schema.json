@@ -3,10 +3,33 @@
     "$id": "https://raw.githubusercontent.com/scott181182/challenge-script/refs/heads/main/challenge.schema.json",
     "title": "Challenge",
     "description": "A challenge definition, used by the challenge script to execute coding challenges",
-
     "$defs": {
+        "CommandConfig": {
+            "type": "object",
+            "properties": {
+                "environment": {
+                    "description": "Environment variables to set when running a command. Conflicting variables override higher-level environment definitions.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "arguments": {
+                    "description": "Additional arguments to pass when running a command. Will be appended after any higher-level argument definitions.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "NestedChallengeGroup": {
             "type": "object",
+            "allOf": [
+                {
+                    "$ref": "#/$defs/CommandConfig"
+                }
+            ],
             "properties": {
                 "name": {
                     "type": "string",
@@ -17,16 +40,28 @@
                     "type": "array",
                     "items": {
                         "oneOf": [
-                            { "$ref": "#/$defs/NestedChallengeGroup" },
-                            { "$ref": "#/$defs/ChallengeGroup" }
+                            {
+                                "$ref": "#/$defs/NestedChallengeGroup"
+                            },
+                            {
+                                "$ref": "#/$defs/ChallengeGroup"
+                            }
                         ]
                     }
                 }
             },
-            "required": [ "name", "parts" ]
+            "required": [
+                "name",
+                "parts"
+            ]
         },
         "ChallengeGroup": {
             "type": "object",
+            "allOf": [
+                {
+                    "$ref": "#/$defs/CommandConfig"
+                }
+            ],
             "properties": {
                 "name": {
                     "type": "string",
@@ -35,34 +70,42 @@
                 "command": {
                     "description": "The command to run for this group of challenges",
                     "oneOf": [
-                        { "type": "string" },
+                        {
+                            "type": "string"
+                        },
                         {
                             "type": "array",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     ]
                 },
                 "cases": {
                     "description": "The input/output cases for this challenge group",
                     "type": "array",
-                    "items": { "$ref": "#/$defs/ChallengeCase" }
+                    "items": {
+                        "$ref": "#/$defs/ChallengeCase"
+                    }
                 }
             },
-            "required": [ "name", "command", "cases" ]
+            "required": [
+                "name",
+                "command",
+                "cases"
+            ]
         },
         "ChallengeCase": {
             "type": "object",
+            "allOf": [
+                {
+                    "$ref": "#/$defs/CommandConfig"
+                }
+            ],
             "properties": {
                 "name": {
                     "description": "Name of this challenge case, used to reference it in commands",
                     "type": "string"
-                },
-                "environment": {
-                    "description": "Environment variables to set when running this case",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
                 },
                 "stdin": {
                     "description": "Data to pass to the stdin when running this case",
@@ -79,11 +122,15 @@
                     }
                 }
             },
-            "required": [ "name" ]
+            "required": [
+                "name"
+            ]
         },
         "StringReference": {
             "oneOf": [
-                { "type": "string" },
+                {
+                    "type": "string"
+                },
                 {
                     "type": "object",
                     "properties": {
@@ -92,13 +139,19 @@
                             "type": "string"
                         }
                     },
-                    "required": [ "file" ]
+                    "required": [
+                        "file"
+                    ]
                 }
             ]
         }
     },
     "oneOf": [
-        { "$ref": "#/$defs/NestedChallengeGroup" },
-        { "$ref": "#/$defs/ChallengeGroup" }
+        {
+            "$ref": "#/$defs/NestedChallengeGroup"
+        },
+        {
+            "$ref": "#/$defs/ChallengeGroup"
+        }
     ]
 }

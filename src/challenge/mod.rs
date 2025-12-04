@@ -1,34 +1,20 @@
-use std::collections::HashMap;
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
 use serde::Deserialize;
 
+mod command;
 mod errors;
+mod misc;
+
+pub use crate::challenge::command::CommandConfig;
 
 pub use self::errors::{
     ChallengeCaseError, ChallengeExecutionError, CommandParseError, StringReferenceError,
 };
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(untagged)]
-pub enum StringReference {
-    Immediate(String),
-    File { file: String },
-}
-impl StringReference {
-    fn into_string<P: AsRef<Path>>(self, challenge_dir: P) -> Result<String, StringReferenceError> {
-        Ok(match self {
-            StringReference::Immediate(s) => s,
-            StringReference::File { file } => {
-                let filepath = challenge_dir.as_ref().join(file);
-                read_to_string(filepath)?
-            }
-        })
-    }
-}
+pub use self::misc::StringReference;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ChallengeExpectation {
@@ -38,9 +24,9 @@ pub struct ChallengeExpectation {
 #[derive(Debug, Deserialize, Clone)]
 pub struct ChallengeCase {
     pub name: String,
+    #[serde(flatten)]
+    config: CommandConfig,
     stdin: Option<StringReference>,
-    arguments: Option<Vec<String>>,
-    environment: Option<HashMap<String, String>>,
     expected: Option<ChallengeExpectation>,
 }
 impl ChallengeCase {
@@ -50,14 +36,14 @@ impl ChallengeCase {
         command: &ChallengeCommand,
     ) -> Result<(), ChallengeExecutionError> {
         let mut cmd = command.get_command()?;
-        if let Some(args) = self.arguments {
+        if let Some(args) = self.config.arguments {
             cmd.args(args);
         }
         cmd.current_dir(&challenge_dir);
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::inherit());
 
-        if let Some(env_vars) = &self.environment {
+        if let Some(env_vars) = &self.config.environment {
             for (key, value) in env_vars {
                 cmd.env(key, value);
             }
@@ -137,12 +123,16 @@ impl ChallengeCommand {
 #[derive(Debug, Deserialize)]
 pub struct ChallengeConfigParent {
     pub name: String,
+    #[serde(flatten)]
+    config: CommandConfig,
     parts: Vec<ChallengeConfig>,
 }
 #[derive(Debug, Deserialize)]
 pub struct ChallengeConfigLeaf {
     pub name: String,
     pub command: ChallengeCommand,
+    #[serde(flatten)]
+    config: CommandConfig,
     cases: Vec<ChallengeCase>,
 }
 
@@ -160,9 +150,10 @@ impl ChallengeConfig {
         }
     }
 
-    pub fn get_case<I: Iterator<Item = String>>(
+    pub fn resolve_case<I: Iterator<Item = String>>(
         &self,
         mut cases: I,
+        config: CommandConfig,
     ) -> Result<(ChallengeCommand, ChallengeCase), ChallengeCaseError> {
         let next_part = cases.next().ok_or(ChallengeCaseError::NotEnoughCases)?;
         match self {
@@ -175,10 +166,10 @@ impl ChallengeConfig {
                         case: next_part,
                         config_name: parent.name.clone(),
                     })?;
-                next_config.get_case(cases)
+                next_config.resolve_case(cases, config.merge(&parent.config))
             }
             ChallengeConfig::Leaf(leaf) => {
-                let case = leaf
+                let mut case = leaf
                     .cases
                     .iter()
                     .find(|c| &c.name == &next_part)
@@ -187,6 +178,8 @@ impl ChallengeConfig {
                         config_name: leaf.name.clone(),
                     })
                     .map(ChallengeCase::clone)?;
+
+                case.config = config.merge(&leaf.config).merge(&case.config);
 
                 Ok((leaf.command.clone(), case))
             }

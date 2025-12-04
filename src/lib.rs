@@ -5,7 +5,7 @@ pub mod challenge;
 mod errors;
 
 pub use self::errors::{ChallengeFileError, ProgramError};
-use crate::challenge::ChallengeConfig;
+use crate::challenge::{ChallengeConfig, CommandConfig};
 
 fn get_challenge_file<P: AsRef<Path>>(input: P) -> Result<(PathBuf, File), ChallengeFileError> {
     let input_path = input.as_ref();
@@ -44,7 +44,8 @@ pub fn run_challenge<P: AsRef<Path>>(
 ) -> Result<(), ProgramError> {
     let (challenge_dir, challenge_file) = get_challenge_file(challenge_path)?;
     let challenge_config: ChallengeConfig = serde_yaml::from_reader(challenge_file)?;
-    let (command, case) = challenge_config.get_case(cases.into_iter())?;
+    let (command, case) =
+        challenge_config.resolve_case(cases.into_iter(), CommandConfig::default())?;
     case.execute(challenge_dir, &command)?;
 
     Ok(())
