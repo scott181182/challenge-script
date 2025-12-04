@@ -1,5 +1,6 @@
 {
     "yaml.schemas": {
         "challenge.schema.json": [ "tests/**/*.yml" ]
-    }
+    },
+    "editor.formatOnSave": true,
 }

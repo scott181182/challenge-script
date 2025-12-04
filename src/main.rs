@@ -1,8 +1,6 @@
 use challenge_script::run_challenge;
 use clap::Parser;
 
-
-
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
@@ -11,8 +9,6 @@ pub struct Args {
     /// Challenge case (or nested parts and case) to run
     cases: Vec<String>,
 }
-
-
 
 fn main() {
     let args = Args::parse();
