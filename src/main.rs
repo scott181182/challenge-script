@@ -14,6 +14,6 @@ fn main() {
     let args = Args::parse();
 
     if let Err(err) = run_challenge(args.challenge, args.cases) {
-        eprintln!("{}", err);
+        eprintln!("{err}");
     }
 }

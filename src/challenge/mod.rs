@@ -78,7 +78,7 @@ impl ChallengeCase {
             .read_to_string(&mut output)
             .map_err(ChallengeExecutionError::CouldNotReadStdout)?;
 
-        println!("{}", output);
+        println!("{output}");
 
         if let Some(expected) = self.expected {
             let actual_output = output.trim();
@@ -161,7 +161,7 @@ impl ChallengeConfig {
                 let next_config = parent
                     .parts
                     .iter()
-                    .find(|c| c.get_name() == &next_part)
+                    .find(|c| c.get_name() == next_part)
                     .ok_or_else(|| ChallengeCaseError::CaseNotFound {
                         case: next_part,
                         config_name: parent.name.clone(),
@@ -172,12 +172,12 @@ impl ChallengeConfig {
                 let mut case = leaf
                     .cases
                     .iter()
-                    .find(|c| &c.name == &next_part)
+                    .find(|c| c.name == next_part)
                     .ok_or_else(|| ChallengeCaseError::CaseNotFound {
                         case: next_part,
                         config_name: leaf.name.clone(),
                     })
-                    .map(ChallengeCase::clone)?;
+                    .cloned()?;
 
                 case.config = config.merge(&leaf.config).merge(&case.config);
 
