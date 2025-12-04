@@ -1,0 +1,29 @@
+name: Test 4
+arguments:
+  - one
+  - two
+parts:
+  - name: group1
+    command: echo
+    cases:
+      - name: toplevel
+        expected:
+          stdout: one two
+      - name: override
+        arguments:
+          - three
+        expected:
+          stdout: one two three
+  - name: group2
+    command: ["echo", "test"]
+    arguments:
+      - four
+    cases:
+      - name: toplevel
+        expected:
+          stdout: test one two four
+      - name: override
+        arguments:
+          - five
+        expected:
+          stdout: test one two four five
