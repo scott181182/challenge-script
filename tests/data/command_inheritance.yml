@@ -1,0 +1,14 @@
+name: Test 4
+command: "echo root"
+parts:
+  - name: group1
+    cases:
+      - name: test
+        expected:
+          stdout: root
+  - name: group2
+    command: echo group
+    cases:
+      - name: test
+        expected:
+          stdout: group
