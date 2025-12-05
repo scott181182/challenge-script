@@ -1,3 +1,4 @@
+use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -10,6 +11,7 @@ mod parsing;
 
 pub use crate::challenge::command::CommandConfig;
 use crate::challenge::parsing::ChallengeConfigData;
+use crate::template::template_string;
 
 pub use self::errors::{
     ChallengeCaseError, ChallengeExecutionError, ChallengeParseError, CommandParseError,
@@ -25,6 +27,7 @@ pub struct ChallengeExpectation {
 #[derive(Debug, Clone)]
 pub struct ChallengeCase {
     pub name: String,
+    parent_name: String,
     config: CommandConfig,
     stdin: Option<StringReference>,
     expected: Option<ChallengeExpectation>,
@@ -35,7 +38,7 @@ impl ChallengeCase {
         challenge_dir: P,
         command: &ChallengeCommand,
     ) -> Result<(), ChallengeExecutionError> {
-        let mut cmd = command.get_command()?;
+        let mut cmd = command.get_command(&self.parent_name, &self.name)?;
         if let Some(args) = self.config.arguments {
             cmd.args(args);
         }
@@ -98,23 +101,43 @@ impl ChallengeCase {
 }
 
 #[derive(Debug, Clone)]
-pub enum ChallengeCommand {
-    Immediate(String),
-    List(Vec<String>),
+pub enum ChallengeCommandScript {
+    Shell(String),
+    Exec(Vec<String>),
+}
+#[derive(Debug, Clone)]
+pub struct ChallengeCommand {
+    script: ChallengeCommandScript,
+    template: bool,
 }
 impl ChallengeCommand {
-    pub fn get_command(&self) -> Result<Command, CommandParseError> {
-        let command_array = match self {
-            ChallengeCommand::Immediate(s) => {
-                shlex::split(s).ok_or(CommandParseError::MalformedString(s.clone()))?
-            }
-            ChallengeCommand::List(l) => l.clone(),
+    pub fn get_command(
+        &self,
+        part_name: &str,
+        case_name: &str,
+    ) -> Result<Command, CommandParseError> {
+        let mut command_array: VecDeque<String> = match &self.script {
+            ChallengeCommandScript::Shell(s) => shlex::split(s)
+                .ok_or(CommandParseError::MalformedString(s.clone()))?
+                .into(),
+            ChallengeCommandScript::Exec(l) => l.clone().into(),
         };
-        let mut command_iter = command_array.into_iter();
-        let program = command_iter.next().ok_or(CommandParseError::EmptyCommand)?;
+
+        if self.template {
+            let context = HashMap::from([("part", part_name), ("case", case_name)]);
+
+            command_array = command_array
+                .into_iter()
+                .map(|c| template_string(&c, &context))
+                .collect();
+        }
+
+        let program = command_array
+            .pop_front()
+            .ok_or(CommandParseError::EmptyCommand)?;
 
         let mut cmd = Command::new(program);
-        cmd.args(command_iter);
+        cmd.args(command_array);
         Ok(cmd)
     }
 }

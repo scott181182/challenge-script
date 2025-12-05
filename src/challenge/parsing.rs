@@ -3,8 +3,8 @@ use serde::Deserialize;
 use super::misc::StringReference;
 use crate::challenge::command::CommandConfig;
 use crate::challenge::{
-    ChallengeCase, ChallengeCommand, ChallengeConfig, ChallengeConfigGroup, ChallengeConfigPart,
-    ChallengeExpectation, ChallengeParseError,
+    ChallengeCase, ChallengeCommand, ChallengeCommandScript, ChallengeConfig, ChallengeConfigGroup,
+    ChallengeConfigPart, ChallengeExpectation, ChallengeParseError,
 };
 
 trait TryResolveChallenge<T> {
@@ -15,7 +15,11 @@ trait TryResolveChallenge<T> {
     ) -> Result<T, ChallengeParseError>;
 }
 trait TryResolveCase<T> {
-    fn try_resolve(self, inherit_config: CommandConfig) -> Result<T, ChallengeParseError>;
+    fn try_resolve(
+        self,
+        parent_name: String,
+        inherit_config: CommandConfig,
+    ) -> Result<T, ChallengeParseError>;
 }
 macro_rules! resolve_into {
     ($data:ident, $parsed:ident) => {
@@ -30,8 +34,8 @@ macro_rules! resolve_into {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct ChallengeExpectationData {
-    pub stdout: StringReference,
+struct ChallengeExpectationData {
+    stdout: StringReference,
 }
 impl Into<ChallengeExpectation> for ChallengeExpectationData {
     fn into(self) -> ChallengeExpectation {
@@ -42,8 +46,8 @@ impl Into<ChallengeExpectation> for ChallengeExpectationData {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct ChallengeCaseData {
-    pub name: String,
+struct ChallengeCaseData {
+    name: String,
     #[serde(flatten)]
     config: CommandConfig,
     stdin: Option<StringReference>,
@@ -52,10 +56,12 @@ pub struct ChallengeCaseData {
 impl TryResolveCase<ChallengeCase> for ChallengeCaseData {
     fn try_resolve(
         self,
+        parent_name: String,
         inherit_config: CommandConfig,
     ) -> Result<ChallengeCase, ChallengeParseError> {
         Ok(ChallengeCase {
             name: self.name,
+            parent_name,
             config: inherit_config.merge(&self.config),
             stdin: self.stdin,
             expected: self.expected.map(ChallengeExpectationData::into),
@@ -65,23 +71,61 @@ impl TryResolveCase<ChallengeCase> for ChallengeCaseData {
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
-pub enum ChallengeCommandData {
-    Immediate(String),
-    List(Vec<String>),
+enum ChallengeCommandScriptData {
+    Shell(String),
+    Exec(Vec<String>),
 }
+impl Into<ChallengeCommandScript> for ChallengeCommandScriptData {
+    fn into(self) -> ChallengeCommandScript {
+        match self {
+            ChallengeCommandScriptData::Shell(s) => ChallengeCommandScript::Shell(s),
+            ChallengeCommandScriptData::Exec(s) => ChallengeCommandScript::Exec(s),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct ChallengeCommandObjectData {
+    script: ChallengeCommandScriptData,
+    template: Option<bool>,
+}
+impl Into<ChallengeCommand> for ChallengeCommandObjectData {
+    fn into(self) -> ChallengeCommand {
+        ChallengeCommand {
+            script: self.script.into(),
+            template: self.template.unwrap_or(true),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+enum ChallengeCommandData {
+    Shell(String),
+    Exec(Vec<String>),
+    Object(ChallengeCommandObjectData),
+}
+
 impl Into<ChallengeCommand> for ChallengeCommandData {
     fn into(self) -> ChallengeCommand {
         match self {
-            ChallengeCommandData::Immediate(imm) => ChallengeCommand::Immediate(imm),
-            ChallengeCommandData::List(items) => ChallengeCommand::List(items),
+            ChallengeCommandData::Shell(s) => ChallengeCommand {
+                script: ChallengeCommandScript::Shell(s),
+                template: true,
+            },
+            ChallengeCommandData::Exec(s) => ChallengeCommand {
+                script: ChallengeCommandScript::Exec(s),
+                template: true,
+            },
+            ChallengeCommandData::Object(obj) => obj.into(),
         }
     }
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ChallengeConfigGroupData {
-    pub name: String,
-    pub command: Option<ChallengeCommandData>,
+    name: String,
+    command: Option<ChallengeCommandData>,
     #[serde(flatten)]
     config: CommandConfig,
 
@@ -112,8 +156,8 @@ resolve_into!(ChallengeConfigGroupData, ChallengeConfigGroup);
 
 #[derive(Debug, Deserialize)]
 pub struct ChallengeConfigPartData {
-    pub name: String,
-    pub command: Option<ChallengeCommandData>,
+    name: String,
+    command: Option<ChallengeCommandData>,
     #[serde(flatten)]
     config: CommandConfig,
 
@@ -130,12 +174,14 @@ impl TryResolveChallenge<ChallengeConfigPart> for ChallengeConfigPartData {
             command: self
                 .command
                 .or(inherit_command)
-                .ok_or(ChallengeParseError::NoCommandFound(self.name))?
+                .ok_or(ChallengeParseError::NoCommandFound(self.name.clone()))?
                 .into(),
             cases: self
                 .cases
                 .into_iter()
-                .map(|case_data| case_data.try_resolve(inherit_config.merge(&self.config)))
+                .map(|case_data| {
+                    case_data.try_resolve(self.name.clone(), inherit_config.merge(&self.config))
+                })
                 .collect::<Result<_, _>>()?,
         })
     }

@@ -4,6 +4,34 @@
     "title": "Challenge",
     "description": "A challenge definition, used by the challenge script to execute coding challenges",
     "$defs": {
+        "CommandScript": {
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            ]
+        },
+        "CommandObject": {
+            "type": "object",
+            "properties": {
+                "script": {
+                    "$ref": "#/$defs/CommandScript"
+                },
+                "template": {
+                    "description": "Whether to skip templating the command script (default: false)",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "script"
+            ]
+        },
         "CommandConfig": {
             "type": "object",
             "properties": {
@@ -11,13 +39,10 @@
                     "description": "The command to run for this group of challenges",
                     "oneOf": [
                         {
-                            "type": "string"
+                            "$ref": "#/$defs/CommandScript"
                         },
                         {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "$ref": "#/$defs/CommandObject"
                         }
                     ]
                 }

@@ -2,7 +2,8 @@ use std::fs::{read_dir, File};
 use std::path::{Path, PathBuf};
 
 pub mod challenge;
-mod errors;
+pub mod errors;
+mod template;
 
 pub use self::errors::{ChallengeFileError, ProgramError};
 use crate::challenge::{ChallengeConfig, CommandConfig};
