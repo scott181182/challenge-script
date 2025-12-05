@@ -7,6 +7,25 @@
         "CommandConfig": {
             "type": "object",
             "properties": {
+                "command": {
+                    "description": "The command to run for this group of challenges",
+                    "oneOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "CaseConfig": {
+            "type": "object",
+            "properties": {
                 "environment": {
                     "description": "Environment variables to set when running a command. Conflicting variables override higher-level environment definitions.",
                     "type": "object",
@@ -26,6 +45,9 @@
         "NestedChallengeGroup": {
             "type": "object",
             "allOf": [
+                {
+                    "$ref": "#/$defs/CaseConfig"
+                },
                 {
                     "$ref": "#/$defs/CommandConfig"
                 }
@@ -59,6 +81,9 @@
             "type": "object",
             "allOf": [
                 {
+                    "$ref": "#/$defs/CaseConfig"
+                },
+                {
                     "$ref": "#/$defs/CommandConfig"
                 }
             ],
@@ -66,20 +91,6 @@
                 "name": {
                     "type": "string",
                     "description": "Name of this challenge group"
-                },
-                "command": {
-                    "description": "The command to run for this group of challenges",
-                    "oneOf": [
-                        {
-                            "type": "string"
-                        },
-                        {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    ]
                 },
                 "cases": {
                     "description": "The input/output cases for this challenge group",
@@ -91,7 +102,6 @@
             },
             "required": [
                 "name",
-                "command",
                 "cases"
             ]
         },
@@ -99,7 +109,7 @@
             "type": "object",
             "allOf": [
                 {
-                    "$ref": "#/$defs/CommandConfig"
+                    "$ref": "#/$defs/CaseConfig"
                 }
             ],
             "properties": {

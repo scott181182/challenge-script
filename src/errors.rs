@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
-use serde_yaml::Error as YamlError;
 use thiserror::Error;
 
-use crate::challenge::{ChallengeCaseError, ChallengeExecutionError};
+use crate::challenge::{ChallengeCaseError, ChallengeExecutionError, ChallengeParseError};
 
 #[derive(Debug, Error)]
 pub enum ChallengeFileError {
@@ -24,8 +23,8 @@ pub enum ChallengeFileError {
 pub enum ProgramError {
     #[error(transparent)]
     InputFileError(#[from] ChallengeFileError),
-    #[error("Failed to parse YAML file: {0}")]
-    ParseError(#[from] YamlError),
+    #[error(transparent)]
+    ParseError(#[from] ChallengeParseError),
     #[error(transparent)]
     InputCaseError(#[from] ChallengeCaseError),
     #[error(transparent)]

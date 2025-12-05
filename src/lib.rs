@@ -43,7 +43,7 @@ pub fn run_challenge<P: AsRef<Path>>(
     cases: Vec<String>,
 ) -> Result<(), ProgramError> {
     let (challenge_dir, challenge_file) = get_challenge_file(challenge_path)?;
-    let challenge_config: ChallengeConfig = serde_yaml::from_reader(challenge_file)?;
+    let challenge_config = ChallengeConfig::parse_file(challenge_file)?;
     let (command, case) =
         challenge_config.resolve_case(cases.into_iter(), CommandConfig::default())?;
     case.execute(challenge_dir, &command)?;

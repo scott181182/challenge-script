@@ -1,9 +1,19 @@
+use serde_yaml::Error as YamlError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum StringReferenceError {
     #[error(transparent)]
     FileRead(#[from] std::io::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum ChallengeParseError {
+    #[error("Failed to parse YAML file: {0}")]
+    Yaml(#[from] YamlError),
+
+    #[error("Could not find command for challenge part '{0}'")]
+    NoCommandFound(String),
 }
 
 #[derive(Debug, Error)]

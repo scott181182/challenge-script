@@ -3,28 +3,28 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use serde::Deserialize;
-
 mod command;
 mod errors;
 mod misc;
+mod parsing;
 
 pub use crate::challenge::command::CommandConfig;
+use crate::challenge::parsing::ChallengeConfigData;
 
 pub use self::errors::{
-    ChallengeCaseError, ChallengeExecutionError, CommandParseError, StringReferenceError,
+    ChallengeCaseError, ChallengeExecutionError, ChallengeParseError, CommandParseError,
+    StringReferenceError,
 };
 pub use self::misc::StringReference;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct ChallengeExpectation {
     pub stdout: StringReference,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct ChallengeCase {
     pub name: String,
-    #[serde(flatten)]
     config: CommandConfig,
     stdin: Option<StringReference>,
     expected: Option<ChallengeExpectation>,
@@ -97,8 +97,7 @@ impl ChallengeCase {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[serde(untagged)]
+#[derive(Debug, Clone)]
 pub enum ChallengeCommand {
     Immediate(String),
     List(Vec<String>),
@@ -120,33 +119,33 @@ impl ChallengeCommand {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ChallengeConfigParent {
+#[derive(Debug)]
+pub struct ChallengeConfigGroup {
     pub name: String,
-    #[serde(flatten)]
-    config: CommandConfig,
     parts: Vec<ChallengeConfig>,
 }
-#[derive(Debug, Deserialize)]
-pub struct ChallengeConfigLeaf {
+#[derive(Debug)]
+pub struct ChallengeConfigPart {
     pub name: String,
     pub command: ChallengeCommand,
-    #[serde(flatten)]
-    config: CommandConfig,
     cases: Vec<ChallengeCase>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum ChallengeConfig {
-    Parent(ChallengeConfigParent),
-    Leaf(ChallengeConfigLeaf),
+    Group(ChallengeConfigGroup),
+    Part(ChallengeConfigPart),
 }
 impl ChallengeConfig {
+    pub fn parse_file<R: std::io::Read>(reader: R) -> Result<Self, ChallengeParseError> {
+        let data: ChallengeConfigData = serde_yaml::from_reader(reader)?;
+        data.try_into()
+    }
+
     pub fn get_name(&self) -> &str {
         match self {
-            ChallengeConfig::Parent(c) => &c.name,
-            ChallengeConfig::Leaf(c) => &c.name,
+            ChallengeConfig::Group(c) => &c.name,
+            ChallengeConfig::Part(c) => &c.name,
         }
     }
 
@@ -157,7 +156,7 @@ impl ChallengeConfig {
     ) -> Result<(ChallengeCommand, ChallengeCase), ChallengeCaseError> {
         let next_part = cases.next().ok_or(ChallengeCaseError::NotEnoughCases)?;
         match self {
-            ChallengeConfig::Parent(parent) => {
+            ChallengeConfig::Group(parent) => {
                 let next_config = parent
                     .parts
                     .iter()
@@ -166,9 +165,9 @@ impl ChallengeConfig {
                         case: next_part,
                         config_name: parent.name.clone(),
                     })?;
-                next_config.resolve_case(cases, config.merge(&parent.config))
+                next_config.resolve_case(cases, config)
             }
-            ChallengeConfig::Leaf(leaf) => {
+            ChallengeConfig::Part(leaf) => {
                 let mut case = leaf
                     .cases
                     .iter()
@@ -179,7 +178,7 @@ impl ChallengeConfig {
                     })
                     .cloned()?;
 
-                case.config = config.merge(&leaf.config).merge(&case.config);
+                case.config = config.merge(&case.config);
 
                 Ok((leaf.command.clone(), case))
             }
