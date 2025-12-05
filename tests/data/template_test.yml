@@ -1,0 +1,22 @@
+name: Test 1
+command: "echo {{part}}"
+parts:
+  - name: group1
+    cases:
+      - name: test
+        expected:
+          stdout: group1
+  - name: group2
+    command: ["echo", "{{part}}", "and", "{{case}}"]
+    cases:
+      - name: test
+        expected:
+          stdout: group2 and test
+  - name: group3
+    command:
+      script: "echo {{part}} and {{case}}"
+      template: false
+    cases:
+      - name: test
+        expected:
+          stdout: "{{part}} and {{case}}"

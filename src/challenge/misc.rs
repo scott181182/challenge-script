@@ -24,3 +24,20 @@ impl StringReference {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_bad_string_file_reference() {
+        let cwd = std::env::current_dir().expect("Couldn't get current working directory");
+        let str_ref = StringReference::File {
+            file: "fake_file".to_owned(),
+        };
+
+        let str_res = str_ref.into_string(cwd);
+
+        assert!(str_res.is_err());
+    }
+}

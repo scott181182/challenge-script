@@ -46,6 +46,12 @@ fn test_success_command_inheritance() {
     test_challenge!("./tests/data/command_inheritance.yml", "group1", "test");
     test_challenge!("./tests/data/command_inheritance.yml", "group2", "test");
 }
+#[test]
+fn test_success_command_templating() {
+    test_challenge!("./tests/data/template_test.yml", "group1", "test");
+    test_challenge!("./tests/data/template_test.yml", "group2", "test");
+    test_challenge!("./tests/data/template_test.yml", "group3", "test");
+}
 
 #[test]
 fn test_success_arguments() {
