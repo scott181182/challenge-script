@@ -55,4 +55,6 @@ pub enum ChallengeCaseError {
     NotEnoughCases,
     #[error("Could not find case '{case}' in config '{config_name}'")]
     CaseNotFound { case: String, config_name: String },
+    #[error("Too many cases under '{0}'. Did you mean to run in recursive mode?")]
+    TooManyCases(String),
 }

@@ -147,11 +147,36 @@ pub struct ChallengeConfigGroup {
     pub name: String,
     parts: Vec<ChallengeConfig>,
 }
+impl ChallengeConfigGroup {
+    pub fn enumerate_cases(
+        &self,
+    ) -> Result<Vec<(ChallengeCommand, ChallengeCase)>, ChallengeCaseError> {
+        Ok(self
+            .parts
+            .iter()
+            .map(|part| part.enumerate_cases())
+            .collect::<Result<Vec<Vec<_>>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect())
+    }
+}
 #[derive(Debug)]
 pub struct ChallengeConfigPart {
     pub name: String,
     pub command: ChallengeCommand,
     cases: Vec<ChallengeCase>,
+}
+impl ChallengeConfigPart {
+    pub fn enumerate_cases(
+        &self,
+    ) -> Result<Vec<(ChallengeCommand, ChallengeCase)>, ChallengeCaseError> {
+        Ok(self
+            .cases
+            .iter()
+            .map(|case| (self.command.clone(), case.clone()))
+            .collect())
+    }
 }
 
 #[derive(Debug)]
@@ -172,12 +197,43 @@ impl ChallengeConfig {
         }
     }
 
+    pub fn enumerate_cases(
+        &self,
+    ) -> Result<Vec<(ChallengeCommand, ChallengeCase)>, ChallengeCaseError> {
+        match self {
+            ChallengeConfig::Group(group) => group.enumerate_cases(),
+            ChallengeConfig::Part(part) => part.enumerate_cases(),
+        }
+    }
+
     pub fn resolve_case<I: Iterator<Item = String>>(
+        &self,
+        cases: I,
+        config: CommandConfig,
+    ) -> Result<(ChallengeCommand, ChallengeCase), ChallengeCaseError> {
+        let mut cases = self.resolve_cases(cases, config)?;
+
+        if cases.len() > 1 {
+            Err(ChallengeCaseError::TooManyCases(
+                cases[0].1.parent_name.clone(),
+            ))
+        } else if let Some(case) = cases.pop() {
+            Ok(case)
+        } else {
+            Err(ChallengeCaseError::NotEnoughCases)
+        }
+    }
+
+    pub fn resolve_cases<I: Iterator<Item = String>>(
         &self,
         mut cases: I,
         config: CommandConfig,
-    ) -> Result<(ChallengeCommand, ChallengeCase), ChallengeCaseError> {
-        let next_part = cases.next().ok_or(ChallengeCaseError::NotEnoughCases)?;
+    ) -> Result<Vec<(ChallengeCommand, ChallengeCase)>, ChallengeCaseError> {
+        let next_part = match cases.next() {
+            Some(next_part) => next_part,
+            None => return self.enumerate_cases(),
+        };
+
         match self {
             ChallengeConfig::Group(parent) => {
                 let next_config = parent
@@ -188,7 +244,7 @@ impl ChallengeConfig {
                         case: next_part,
                         config_name: parent.name.clone(),
                     })?;
-                next_config.resolve_case(cases, config)
+                next_config.resolve_cases(cases, config)
             }
             ChallengeConfig::Part(leaf) => {
                 let mut case = leaf
@@ -203,7 +259,7 @@ impl ChallengeConfig {
 
                 case.config = config.merge(&case.config);
 
-                Ok((leaf.command.clone(), case))
+                Ok(vec![(leaf.command.clone(), case)])
             }
         }
     }

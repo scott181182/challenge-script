@@ -5,11 +5,7 @@ use challenge_script::{
     run_challenge, ChallengeFileError, ProgramError,
 };
 
-macro_rules! test_challenge {
-    ($path:literal, $($parts:literal),+) => {
-        run_challenge($path, vec![$($parts.to_owned()),+]).unwrap();
-    };
-}
+mod utils;
 
 #[test]
 fn test_success_1() {
@@ -120,12 +116,11 @@ fn test_error_case_not_found_nested() {
 fn test_error_case_not_enough_cases() {
     let res = run_challenge("./tests/data/test3", vec!["group1".to_owned()]);
 
-    assert!(matches!(
-        res,
-        Err(ProgramError::InputCaseError(
-            ChallengeCaseError::NotEnoughCases
-        ))
-    ));
+    if let Err(ProgramError::InputCaseError(ChallengeCaseError::TooManyCases(group))) = res {
+        assert_eq!(group, "group1");
+    } else {
+        panic!("Unexpected Error: {res:?}");
+    }
 }
 
 #[test]
@@ -135,14 +130,12 @@ fn test_error_empty_command() {
         vec!["empty_command".to_owned(), "doesn't matter".to_owned()],
     );
 
-    if let Err(ProgramError::ExecutionError(ChallengeExecutionError::BadCommand(
+    let Err(ProgramError::ExecutionError(ChallengeExecutionError::BadCommand(
         CommandParseError::EmptyCommand,
     ))) = res
-    {
-        assert!(true);
-    } else {
+    else {
         panic!("Unexpected Error: {res:?}");
-    }
+    };
 }
 
 #[test]
@@ -169,33 +162,28 @@ fn test_error_input_file_not_found() {
         vec!["bad_input".to_owned(), "nonexistent".to_owned()],
     );
 
-    if let Err(ProgramError::ExecutionError(ChallengeExecutionError::BadStringReference(
+    let Err(ProgramError::ExecutionError(ChallengeExecutionError::BadStringReference(
         StringReferenceError::FileRead(_),
     ))) = res
-    {
-        assert!(true);
-    } else {
+    else {
         panic!("Unexpected Error: {res:?}");
-    }
+    };
 }
 
 #[test]
 fn test_error_challenge_file_not_found() {
     let res = run_challenge("./tests/data/empty/challenge.yml", vec![]);
 
-    if let Err(ProgramError::InputFileError(ChallengeFileError::FileDoesNotExist(_))) = res {
-        assert!(true);
-    } else {
+    let Err(ProgramError::InputFileError(ChallengeFileError::FileDoesNotExist(_))) = res else {
         panic!("Unexpected Error: {res:?}");
-    }
+    };
 }
 #[test]
 fn test_error_challenge_file_not_found_in_directory() {
     let res = run_challenge("./tests/data/empty", vec![]);
 
-    if let Err(ProgramError::InputFileError(ChallengeFileError::FileNotFoundInDirectory(_))) = res {
-        assert!(true);
-    } else {
+    let Err(ProgramError::InputFileError(ChallengeFileError::FileNotFoundInDirectory(_))) = res
+    else {
         panic!("Unexpected Error: {res:?}");
-    }
+    };
 }

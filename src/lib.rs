@@ -51,3 +51,17 @@ pub fn run_challenge<P: AsRef<Path>>(
 
     Ok(())
 }
+pub fn run_challenges<P: AsRef<Path>>(
+    challenge_path: P,
+    cases: Vec<String>,
+) -> Result<(), ProgramError> {
+    let (challenge_dir, challenge_file) = get_challenge_file(challenge_path)?;
+    let challenge_config = ChallengeConfig::parse_file(challenge_file)?;
+    let cases = challenge_config.resolve_cases(cases.into_iter(), CommandConfig::default())?;
+
+    for (cmd, case) in cases {
+        case.execute(&challenge_dir, &cmd)?;
+    }
+
+    Ok(())
+}
