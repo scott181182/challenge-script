@@ -3,26 +3,26 @@ arguments:
   - one
   - two
 parts:
-  - name: group1
+  group1:
     command: echo
     cases:
-      - name: toplevel
+      toplevel:
         expected:
           stdout: one two
-      - name: override
+      override:
         arguments:
           - three
         expected:
           stdout: one two three
-  - name: group2
+  group2:
     command: ["echo", "test"]
     arguments:
       - four
     cases:
-      - name: toplevel
+      toplevel:
         expected:
           stdout: test one two four
-      - name: override
+      override:
         arguments:
           - five
         expected:

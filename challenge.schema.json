@@ -78,14 +78,11 @@
                 }
             ],
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Name of this challenge group"
-                },
                 "parts": {
                     "description": "Nested challenge groups",
-                    "type": "array",
-                    "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
                         "oneOf": [
                             {
                                 "$ref": "#/$defs/NestedChallengeGroup"
@@ -98,7 +95,6 @@
                 }
             },
             "required": [
-                "name",
                 "parts"
             ]
         },
@@ -113,20 +109,15 @@
                 }
             ],
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Name of this challenge group"
-                },
                 "cases": {
                     "description": "The input/output cases for this challenge group",
-                    "type": "array",
-                    "items": {
+                    "type": "object",
+                    "additionalProperties": {
                         "$ref": "#/$defs/ChallengeCase"
                     }
                 }
             },
             "required": [
-                "name",
                 "cases"
             ]
         },
@@ -138,10 +129,6 @@
                 }
             ],
             "properties": {
-                "name": {
-                    "description": "Name of this challenge case, used to reference it in commands",
-                    "type": "string"
-                },
                 "stdin": {
                     "description": "Data to pass to the stdin when running this case",
                     "$ref": "#/$defs/StringReference"
@@ -156,10 +143,7 @@
                         }
                     }
                 }
-            },
-            "required": [
-                "name"
-            ]
+            }
         },
         "StringReference": {
             "oneOf": [
@@ -181,6 +165,16 @@
             ]
         }
     },
+    "type": "object",
+    "properties": {
+        "name": {
+            "description": "The name of this challenge",
+            "type": "string"
+        }
+    },
+    "required": [
+        "name"
+    ],
     "oneOf": [
         {
             "$ref": "#/$defs/NestedChallengeGroup"

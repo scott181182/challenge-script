@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use super::misc::StringReference;
@@ -7,30 +9,28 @@ use crate::challenge::{
     ChallengeConfigPart, ChallengeExpectation, ChallengeParseError,
 };
 
-trait TryResolveChallenge<T> {
+trait TryResolveChallenge<T>
+where
+    Self: Sized,
+{
     fn try_resolve(
         self,
+        name: String,
         inherit_command: Option<ChallengeCommandData>,
         inherit_config: CommandConfig,
     ) -> Result<T, ChallengeParseError>;
+
+    fn try_resolve_default(self, name: String) -> Result<T, ChallengeParseError> {
+        self.try_resolve(name, None, CommandConfig::default())
+    }
 }
 trait TryResolveCase<T> {
     fn try_resolve(
         self,
+        case_name: String,
         parent_name: String,
         inherit_config: CommandConfig,
     ) -> Result<T, ChallengeParseError>;
-}
-macro_rules! resolve_into {
-    ($data:ident, $parsed:ident) => {
-        impl TryInto<$parsed> for $data {
-            type Error = ChallengeParseError;
-
-            fn try_into(self) -> Result<$parsed, Self::Error> {
-                self.try_resolve(None, CommandConfig::default())
-            }
-        }
-    };
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -47,7 +47,6 @@ impl Into<ChallengeExpectation> for ChallengeExpectationData {
 
 #[derive(Debug, Deserialize, Clone)]
 struct ChallengeCaseData {
-    name: String,
     #[serde(flatten)]
     config: CommandConfig,
     stdin: Option<StringReference>,
@@ -56,11 +55,12 @@ struct ChallengeCaseData {
 impl TryResolveCase<ChallengeCase> for ChallengeCaseData {
     fn try_resolve(
         self,
+        case_name: String,
         parent_name: String,
         inherit_config: CommandConfig,
     ) -> Result<ChallengeCase, ChallengeParseError> {
         Ok(ChallengeCase {
-            name: self.name,
+            name: case_name,
             parent_name,
             config: inherit_config.merge(&self.config),
             stdin: self.stdin,
@@ -124,26 +124,27 @@ impl Into<ChallengeCommand> for ChallengeCommandData {
 
 #[derive(Debug, Deserialize)]
 pub struct ChallengeConfigGroupData {
-    name: String,
     command: Option<ChallengeCommandData>,
     #[serde(flatten)]
     config: CommandConfig,
 
-    parts: Vec<ChallengeConfigData>,
+    parts: HashMap<String, ChallengeConfigNode>,
 }
 impl TryResolveChallenge<ChallengeConfigGroup> for ChallengeConfigGroupData {
     fn try_resolve(
         self,
+        name: String,
         inherit_command: Option<ChallengeCommandData>,
         inherit_config: CommandConfig,
     ) -> Result<ChallengeConfigGroup, ChallengeParseError> {
         Ok(ChallengeConfigGroup {
-            name: self.name,
+            name,
             parts: self
                 .parts
                 .into_iter()
-                .map(|part_data| {
+                .map(|(part_name, part_data)| {
                     part_data.try_resolve(
+                        part_name,
                         self.command.clone().or(inherit_command.clone()),
                         inherit_config.merge(&self.config),
                     )
@@ -152,62 +153,82 @@ impl TryResolveChallenge<ChallengeConfigGroup> for ChallengeConfigGroupData {
         })
     }
 }
-resolve_into!(ChallengeConfigGroupData, ChallengeConfigGroup);
 
 #[derive(Debug, Deserialize)]
 pub struct ChallengeConfigPartData {
-    name: String,
     command: Option<ChallengeCommandData>,
     #[serde(flatten)]
     config: CommandConfig,
 
-    cases: Vec<ChallengeCaseData>,
+    cases: HashMap<String, ChallengeCaseData>,
 }
 impl TryResolveChallenge<ChallengeConfigPart> for ChallengeConfigPartData {
     fn try_resolve(
         self,
+        name: String,
         inherit_command: Option<ChallengeCommandData>,
         inherit_config: CommandConfig,
     ) -> Result<ChallengeConfigPart, ChallengeParseError> {
         Ok(ChallengeConfigPart {
-            name: self.name.clone(),
+            name: name.clone(),
             command: self
                 .command
                 .or(inherit_command)
-                .ok_or(ChallengeParseError::NoCommandFound(self.name.clone()))?
+                .ok_or(ChallengeParseError::NoCommandFound(name.clone()))?
                 .into(),
             cases: self
                 .cases
                 .into_iter()
-                .map(|case_data| {
-                    case_data.try_resolve(self.name.clone(), inherit_config.merge(&self.config))
+                .map(|(case_name, case_data)| {
+                    case_data.try_resolve(
+                        case_name,
+                        name.clone(),
+                        inherit_config.merge(&self.config),
+                    )
                 })
                 .collect::<Result<_, _>>()?,
         })
     }
 }
-resolve_into!(ChallengeConfigPartData, ChallengeConfigPart);
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-pub enum ChallengeConfigData {
+enum ChallengeConfigNode {
     Group(ChallengeConfigGroupData),
     Part(ChallengeConfigPartData),
 }
-impl TryResolveChallenge<ChallengeConfig> for ChallengeConfigData {
+impl TryResolveChallenge<ChallengeConfig> for ChallengeConfigNode {
     fn try_resolve(
         self,
+        name: String,
         inherit_command: Option<ChallengeCommandData>,
         inherit_config: CommandConfig,
     ) -> Result<ChallengeConfig, ChallengeParseError> {
         match self {
-            ChallengeConfigData::Group(group) => Ok(ChallengeConfig::Group(
-                group.try_resolve(inherit_command, inherit_config)?,
-            )),
-            ChallengeConfigData::Part(part) => Ok(ChallengeConfig::Part(
-                part.try_resolve(inherit_command, inherit_config)?,
-            )),
+            ChallengeConfigNode::Group(group) => Ok(ChallengeConfig::Group(group.try_resolve(
+                name,
+                inherit_command,
+                inherit_config,
+            )?)),
+            ChallengeConfigNode::Part(part) => Ok(ChallengeConfig::Part(part.try_resolve(
+                name,
+                inherit_command,
+                inherit_config,
+            )?)),
         }
     }
 }
-resolve_into!(ChallengeConfigData, ChallengeConfig);
+
+#[derive(Debug, Deserialize)]
+pub struct ChallengeConfigData {
+    name: String,
+    #[serde(flatten)]
+    node: ChallengeConfigNode,
+}
+impl TryInto<ChallengeConfig> for ChallengeConfigData {
+    type Error = ChallengeParseError;
+
+    fn try_into(self) -> Result<ChallengeConfig, Self::Error> {
+        self.node.try_resolve_default(self.name)
+    }
+}

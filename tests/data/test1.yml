@@ -1,6 +1,6 @@
 name: Test 1
 command: "echo 'Hello, World!'"
 cases:
-  - name: test
+  test:
     expected:
       stdout: "Hello, World!"

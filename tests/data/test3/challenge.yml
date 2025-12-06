@@ -1,9 +1,9 @@
 name: Test 3
 parts:
-  - name: group1
-    command: [ "sed", "s/test_1/test_2/" ]
+  group1:
+    command: ["sed", "s/test_1/test_2/"]
     cases:
-      - name: test
+      test:
         stdin:
           file: input.txt
         expected:
@@ -11,7 +11,7 @@ parts:
             test_2_line_0
             test_2_line_1
             test_2_line_2
-      - name: error
+      error:
         stdin: test_1
         expected:
           stdout: test_1

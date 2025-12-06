@@ -1,16 +1,16 @@
 name: Some Bad Tests
 parts:
-  - name: empty_command
+  empty_command:
     command: ""
     cases:
-      - name: doesn't matter
-  - name: malformed_command
-    command: "echo \"not closed"
+      "doesn't matter": {}
+  malformed_command:
+    command: 'echo "not closed'
     cases:
-      - name: whatever
-  - name: bad_input
+      whatever: {}
+  bad_input:
     command: "echo 'bad_input'"
     cases:
-      - name: nonexistent
+      nonexistent:
         stdin:
           file: nonexistent.txt

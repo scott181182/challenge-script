@@ -2,26 +2,26 @@ name: Test 4
 environment:
   TEST_HELLO: world
 parts:
-  - name: group1
+  group1:
     command: ["sh", "-c", "echo $TEST_HELLO"]
     cases:
-      - name: toplevel
+      toplevel:
         expected:
           stdout: world
-      - name: override
+      override:
         environment:
           TEST_HELLO: world2
         expected:
           stdout: world2
-  - name: group2
+  group2:
     command: ["sh", "-c", "echo $TEST_HELLO-$TEST_GOODBYE"]
     environment:
       TEST_HELLO: world3
     cases:
-      - name: toplevel
+      toplevel:
         expected:
           stdout: world3-
-      - name: override
+      override:
         environment:
           TEST_GOODBYE: end
         expected:

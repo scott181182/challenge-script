@@ -135,12 +135,14 @@ fn test_error_empty_command() {
         vec!["empty_command".to_owned(), "doesn't matter".to_owned()],
     );
 
-    assert!(matches!(
-        res,
-        Err(ProgramError::ExecutionError(
-            ChallengeExecutionError::BadCommand(CommandParseError::EmptyCommand)
-        ))
-    ));
+    if let Err(ProgramError::ExecutionError(ChallengeExecutionError::BadCommand(
+        CommandParseError::EmptyCommand,
+    ))) = res
+    {
+        assert!(true);
+    } else {
+        panic!("Unexpected Error: {res:?}");
+    }
 }
 
 #[test]
@@ -167,33 +169,33 @@ fn test_error_input_file_not_found() {
         vec!["bad_input".to_owned(), "nonexistent".to_owned()],
     );
 
-    assert!(matches!(
-        res,
-        Err(ProgramError::ExecutionError(
-            ChallengeExecutionError::BadStringReference(StringReferenceError::FileRead(_))
-        ))
-    ));
+    if let Err(ProgramError::ExecutionError(ChallengeExecutionError::BadStringReference(
+        StringReferenceError::FileRead(_),
+    ))) = res
+    {
+        assert!(true);
+    } else {
+        panic!("Unexpected Error: {res:?}");
+    }
 }
 
 #[test]
 fn test_error_challenge_file_not_found() {
     let res = run_challenge("./tests/data/empty/challenge.yml", vec![]);
 
-    assert!(matches!(
-        res,
-        Err(ProgramError::InputFileError(
-            ChallengeFileError::FileDoesNotExist(_)
-        ))
-    ));
+    if let Err(ProgramError::InputFileError(ChallengeFileError::FileDoesNotExist(_))) = res {
+        assert!(true);
+    } else {
+        panic!("Unexpected Error: {res:?}");
+    }
 }
 #[test]
 fn test_error_challenge_file_not_found_in_directory() {
     let res = run_challenge("./tests/data/empty", vec![]);
 
-    assert!(matches!(
-        res,
-        Err(ProgramError::InputFileError(
-            ChallengeFileError::FileNotFoundInDirectory(_)
-        ))
-    ));
+    if let Err(ProgramError::InputFileError(ChallengeFileError::FileNotFoundInDirectory(_))) = res {
+        assert!(true);
+    } else {
+        panic!("Unexpected Error: {res:?}");
+    }
 }

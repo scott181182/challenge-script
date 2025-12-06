@@ -1,9 +1,9 @@
 name: Test 2
 parts:
-  - name: group1
+  group1:
     command: "grep test_1"
     cases:
-      - name: test
+      test:
         stdin: &test-input |
           test_1_token
           test_2_token
@@ -11,25 +11,24 @@ parts:
           test_4_token
         expected:
           stdout: test_1_token
-  - name: group2
+  group2:
     command: "grep test_2"
     cases:
-      - name: test
+      test:
         stdin: *test-input
         expected:
           stdout:
             file: test2-output.txt
-  - name: args
+  args:
     command: grep
     cases:
-      - name: test2
-        arguments: [ "2" ]
+      test2:
+        arguments: ["2"]
         stdin: *test-input
         expected:
           stdout: test_2_token
-      - name: test4
-        arguments: [ "4" ]
+      test4:
+        arguments: ["4"]
         stdin: *test-input
         expected:
           stdout: test_4_token
-
