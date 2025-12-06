@@ -14,7 +14,7 @@ pub fn template_string(template_str: &str, context: &HashMap<&str, &str>) -> Str
         }
     }
 
-    return ret;
+    ret
 }
 
 #[cfg(test)]

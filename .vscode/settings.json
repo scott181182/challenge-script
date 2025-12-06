@@ -1,6 +1,9 @@
 {
     "yaml.schemas": {
-        "challenge.schema.json": [ "tests/**/*.yml" ]
+        "challenge.schema.json": [
+            "tests/**/*.yml"
+        ]
     },
     "editor.formatOnSave": true,
+    "rust-analyzer.check.command": "clippy"
 }

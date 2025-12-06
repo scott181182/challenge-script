@@ -162,7 +162,7 @@ pub enum ChallengeConfig {
 impl ChallengeConfig {
     pub fn parse_file<R: std::io::Read>(reader: R) -> Result<Self, ChallengeParseError> {
         let data: ChallengeConfigData = serde_yaml::from_reader(reader)?;
-        data.try_into()
+        ChallengeConfig::try_from(data)
     }
 
     pub fn get_name(&self) -> &str {

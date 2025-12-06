@@ -37,10 +37,10 @@ trait TryResolveCase<T> {
 struct ChallengeExpectationData {
     stdout: StringReference,
 }
-impl Into<ChallengeExpectation> for ChallengeExpectationData {
-    fn into(self) -> ChallengeExpectation {
+impl From<ChallengeExpectationData> for ChallengeExpectation {
+    fn from(value: ChallengeExpectationData) -> Self {
         ChallengeExpectation {
-            stdout: self.stdout,
+            stdout: value.stdout,
         }
     }
 }
@@ -75,9 +75,9 @@ enum ChallengeCommandScriptData {
     Shell(String),
     Exec(Vec<String>),
 }
-impl Into<ChallengeCommandScript> for ChallengeCommandScriptData {
-    fn into(self) -> ChallengeCommandScript {
-        match self {
+impl From<ChallengeCommandScriptData> for ChallengeCommandScript {
+    fn from(val: ChallengeCommandScriptData) -> Self {
+        match val {
             ChallengeCommandScriptData::Shell(s) => ChallengeCommandScript::Shell(s),
             ChallengeCommandScriptData::Exec(s) => ChallengeCommandScript::Exec(s),
         }
@@ -89,11 +89,11 @@ struct ChallengeCommandObjectData {
     script: ChallengeCommandScriptData,
     template: Option<bool>,
 }
-impl Into<ChallengeCommand> for ChallengeCommandObjectData {
-    fn into(self) -> ChallengeCommand {
+impl From<ChallengeCommandObjectData> for ChallengeCommand {
+    fn from(val: ChallengeCommandObjectData) -> Self {
         ChallengeCommand {
-            script: self.script.into(),
-            template: self.template.unwrap_or(true),
+            script: val.script.into(),
+            template: val.template.unwrap_or(true),
         }
     }
 }
@@ -106,9 +106,9 @@ enum ChallengeCommandData {
     Object(ChallengeCommandObjectData),
 }
 
-impl Into<ChallengeCommand> for ChallengeCommandData {
-    fn into(self) -> ChallengeCommand {
-        match self {
+impl From<ChallengeCommandData> for ChallengeCommand {
+    fn from(val: ChallengeCommandData) -> Self {
+        match val {
             ChallengeCommandData::Shell(s) => ChallengeCommand {
                 script: ChallengeCommandScript::Shell(s),
                 template: true,
@@ -225,10 +225,10 @@ pub struct ChallengeConfigData {
     #[serde(flatten)]
     node: ChallengeConfigNode,
 }
-impl TryInto<ChallengeConfig> for ChallengeConfigData {
+impl TryFrom<ChallengeConfigData> for ChallengeConfig {
     type Error = ChallengeParseError;
 
-    fn try_into(self) -> Result<ChallengeConfig, Self::Error> {
-        self.node.try_resolve_default(self.name)
+    fn try_from(value: ChallengeConfigData) -> Result<Self, Self::Error> {
+        value.node.try_resolve_default(value.name)
     }
 }
